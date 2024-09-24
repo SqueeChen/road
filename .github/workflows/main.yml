@@ -1,7 +1,7 @@
 name: morning
 on:
   schedule:
-  - cron:  '10 * * * *'
+  - cron:  '12 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
       with:
         python-version: '3.x'
         architecture: 'x64'
-    - run: pip install -r ./requirements.txt && python ./main.py
+    - run: pip install python ./main.py
 
     env:
       APP_ID: ''
