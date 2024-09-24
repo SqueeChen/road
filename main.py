@@ -21,13 +21,14 @@ num_vehicles = 5
 max_load = 7000
 
 def calculate_fitness(path):
-      """计算路径的适应度（总距离）"""
+    """计算路径的适应度（总距离）"""
     if len(path) < 2:
         return float('inf')  # 无效路径，返回无穷大
     total_distance = 0
     for i in range(len(path) - 1):
         total_distance += distance_matrix[path[i]][path[i + 1]]
     return total_distance
+
 
 def crossover(parent1, parent2):
     """交叉操作"""
