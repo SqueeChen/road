@@ -1,65 +1,68 @@
-from datetime import date, datetime
-import math
-from wechatpy import WeChatClient
-from wechatpy.client.api import WeChatMessage, WeChatTemplate
-import requests
-import os
+import numpy as np
 import random
 
-today = datetime.now()
-start_date = os.environ['START_DATE']
-city = os.environ['CITY']
-birthday = os.environ['BIRTHDAY']
+# 定义配送点和距离矩阵
+distance_matrix = np.array([
+    [0, 11.664, 22.0698, 42.9336, 23.6823, 10.0424, 29.231, 61.2049],  # 仓库
+    [11.664, 0, 26.3344, 12.186, 35.6682, 3.8953, 30.7112, 71.2565],  # 客户1
+    [22.0698, 26.3344, 0, 44.773, 12.8769, 35.7188, 80.7583],          # 客户2
+    [42.9336, 12.186, 44.773, 0, 47.0516, 14.0086, 38.5624],          # 客户3
+    [23.6823, 35.6682, 12.8769, 47.0516, 0, 35.7555, 64.9765],        # 客户4
+    [10.0424, 3.8953, 35.7188, 14.0086, 35.7555, 0, 33.2539],         # 客户5
+    [29.231, 30.7112, 80.7583, 38.5624, 64.9765, 33.2539, 0],         # 客户6
+    [61.2049, 71.2565, 0, 83.1142, 0, 70.9789, 53.445],               # 客户7
+])
 
-app_id = os.environ["APP_ID"]
-app_secret = os.environ["APP_SECRET"]
+# 客户需求量
+customer_demand = [50, 60, 20, 50, 40, 100, 60, 80]
 
-user_id = os.environ["USER_ID"]
-template_id = os.environ["TEMPLATE_ID"]
+# 基本参数
+num_vehicles = 5
+max_load = 7000
 
+def calculate_fitness(path):
+    """计算路径的适应度（总距离）"""
+    total_distance = 0
+    for i in range(len(path) - 1):
+        total_distance += distance_matrix[path[i]][path[i + 1]]
+    return total_distance
 
-def get_weather():
-    url1 = 'https://geoapi.qweather.com/v2/city/lookup?location=' + city + '&key=72b5d1a456a94bd38c4a5a448fa1da66'
-    response1 = requests.get(url1)
-    data1 = response1.json()
-    id = data1["location"][0]["id"]
+def crossover(parent1, parent2):
+    """交叉操作"""
+    point = random.randint(1, len(parent1) - 2)
+    child = parent1[:point] + [x for x in parent2 if x not in parent1[:point]]
+    return child
 
-    url2 = "https://devapi.qweather.com/v7/weather/3d?location=" + id + "&key=72b5d1a456a94bd38c4a5a448fa1da66"
-    response = requests.get(url2)
-    data = response.json()
-    weather = data["daily"][0]["textDay"]
-    top = data["daily"][0]["tempMax"]
-    low = data["daily"][0]["tempMin"]
-    temperature = (int(top) + int(low)) / 2
-    print(weather, temperature)
-    return weather, temperature
+def mutate(path):
+    """变异操作"""
+    if random.random() < 0.1:  # 10% 变异概率
+        i, j = random.sample(range(1, len(path)), 2)
+        path[i], path[j] = path[j], path[i]  # 交换两个节点
+    return path
 
+def genetic_algorithm(num_generations, population_size):
+    """遗传算法主函数"""
+    # 初始化种群
+    population = [random.sample(range(len(distance_matrix)), len(distance_matrix)) for _ in range(population_size)]
+    
+    for generation in range(num_generations):
+        population.sort(key=calculate_fitness)  # 按适应度排序
+        next_population = population[:population_size // 2]  # 选择前一半
 
+        while len(next_population) < population_size:
+            parent1, parent2 = random.sample(next_population, 2)
+            child = crossover(parent1, parent2)
+            child = mutate(child)
+            next_population.append(child)
 
-def get_count():
-  delta = today - datetime.strptime(start_date, "%Y-%m-%d")
-  return delta.days
+        population = next_population
 
-def get_birthday():
-  next = datetime.strptime(str(date.today().year) + "-" + birthday, "%Y-%m-%d")
-  if next < datetime.now():
-    next = next.replace(year=next.year + 1)
-  return (next - today).days
+    best_path = min(population, key=calculate_fitness)
+    return best_path, calculate_fitness(best_path)
 
-def get_words():
-  words = requests.get("https://api.shadiao.pro/chp")
-  if words.status_code != 200:
-    return get_words()
-  return words.json()['data']['text']
+# 运行遗传算法
+best_path, best_distance = genetic_algorithm(num_generations=100, population_size=50)
 
-def get_random_color():
-  return "#%06x" % random.randint(0, 0xFFFFFF)
-
-
-client = WeChatClient(app_id, app_secret)
-
-wm = WeChatMessage(client)
-wea, temperature = get_weather()
-data = {"weather":{"value":wea},"temperature":{"value":temperature},"love_days":{"value":get_count()},"birthday_left":{"value":get_birthday()},"words":{"value":get_words(), "color":get_random_color()}}
-res = wm.send_template(user_id, template_id, data)
-print(res)
+# 输出结果
+print("最优路径:", best_path)
+print("最优距离:", best_distance)
