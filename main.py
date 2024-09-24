@@ -26,7 +26,7 @@ def calculate_fitness(path):
         return float('inf')  # 无效路径，返回无穷大
     total_distance = 0
     for i in range(len(path) - 1):
-        total_distance += distance_matrix[path[i]][path[i + 1]]
+        total_distance += distance_matrix[path[i]][path[i]]
     return total_distance
 
 
