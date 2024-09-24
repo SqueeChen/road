@@ -1,6 +1,6 @@
 import numpy as np
 
-# 完整距离矩阵，包括所有客户和配送中心
+# 所有客户和配送中心
 distance_matrix = np.array([
     [0, 11.664, 22.0698, 23.6823, 20.0, 15.0, 30.0, 35.0],  # 从仓库中心到其他客户
     [11.664, 0, 26.3344, 12.186, 17.0, 22.0, 33.0, 27.0],
@@ -29,6 +29,7 @@ class Fish:
         total_distance = 0
         for i in range(len(path) - 1):
             total_distance += distance_matrix[path[i]][path[i + 1]]
+        print(f"最长路径: {total_distance} km")
         return total_distance
 
 def artificial_fish_school_algorithm(distance_matrix, customer_demand, vehicle_count, max_load):
